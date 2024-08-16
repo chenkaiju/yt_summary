@@ -1,0 +1,21 @@
+{
+    "build": {
+        "dockerfile": "../Dockerfile"
+    },
+    "name": "whisper_pipeline",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "mikoz.isort-formatter",
+                "ms-python.black-formatter",
+                "ms-python.python",
+                "ms-python.debugpy",
+                "ms-python.isort"
+            ]
+        }
+    },
+    "runArgs": [
+        "--gpus",
+        "all"
+    ]
+}
