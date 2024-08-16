@@ -4,6 +4,7 @@ import yt_dlp
 import os
 from datetime import datetime
 from pydub import AudioSegment
+from typing import List
 
 def seconds_to_hms(secs):
     # Extract hours, minutes, seconds
@@ -36,7 +37,7 @@ def audio_to_transcript(video_path):
 
 def download_youtube_audio(
     yt_url: str,
-    sub_folders: list[str] = [
+    sub_folders: List[str] = [
         "audio_download",
     ],
 ) -> str:
@@ -47,7 +48,7 @@ def download_youtube_audio(
 
     try:
         print(f"Start downloading YouTube audio, yt_url={yt_url}")
-        base_folder = os.path.dirname(__file__)
+        base_folder = "./"
         output_folder = os.path.join(base_folder, *sub_folders)
         os.makedirs(output_folder, exist_ok=True)
 
@@ -111,6 +112,6 @@ def fetch_cur_timestamp() -> str:
 
 
 url = 'https://www.youtube.com/watch?v=VUSwpdOwSA0'
-video_title, wav_audio_path = download_youtube_audio(yt_url=url)
-print(f"title={video_title}, path={wav_audio_path}")       
-# audio_to_transcript("./videoplayback.m4a")
+wav_audio_path = download_youtube_audio(yt_url=url)
+print(f"path={wav_audio_path}")       
+audio_to_transcript(wav_audio_path)
