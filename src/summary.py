@@ -2,113 +2,142 @@ from openai import OpenAI
 from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
 import os
+import tiktoken
 
-def read_openai_apikey(env_path=None):
-    # Load the .env file from the specified path or default location
-    if env_path:
-        if not os.path.exists(env_path):
-            raise FileNotFoundError(f".env file not found at {env_path}")
-        load_dotenv(env_path)
-    else:
-        # Load default .env file using find_dotenv() to search the file automatically
-        load_dotenv(find_dotenv())
-
-    # Get the API key from the environment
-    openai_apikey = os.getenv('openai_apikey')
-
-    if openai_apikey:
-        return openai_apikey
-    else:
-        raise EnvironmentError("openai_apikey not found in .env file")
-
-def summarize_chunk(chunk):
+class Summary():
     
-    try:
-        custom_env_path = "./openai_apikey.env"
-        api_key = read_openai_apikey(custom_env_path)
-        print(f"OpenAI API key: {api_key}")
-    except EnvironmentError as e:
-        print(e)
+    def __init__(self, env_path) -> None:
         
-    client = OpenAI(
-        # This is the default and can be omitted
-        api_key=api_key,
-    )
-
-    response = client.chat.completions.create(
-        model="gpt-4",  # You can use other models as well
-        messages=[
-            {"role": "system", "content": "你很擅長做重點整理."},
-            {"role": "user", "content": f"給我這段話詳細的重點整理:\n\n{chunk}"}
-        ],
-        max_tokens=1000,  # Adjust as needed
-        temperature=0.5
-    )
-    
-    summary = response.choices[0].message.content
-    
-    return summary
-    
+        self._env_path = env_path
+        self._openai_apikey = None
         
-def summarize_paragraph(paragraph, output_file_prefix):
-    
-    try:
-        custom_env_path = "./openai_apikey.env"
-        api_key = read_openai_apikey(custom_env_path)
-        print(f"OpenAI API key: {api_key}")
-    except EnvironmentError as e:
-        print(e)
+    def read_openai_apikey(self):
         
-    client = OpenAI(
-        # This is the default and can be omitted
-        api_key=api_key,
-    )
-    
-    # Generate a timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    # Create the full filename with the timestamp postfix
-    output_file = f"{output_file_prefix}_{timestamp}.txt"
-    
-    response = client.chat.completions.create(
-        model="gpt-4",  # You can use other models as well
-        messages=[
-            {"role": "system", "content": "你很擅長做重點整理."},
-            {"role": "user", "content": f"給我這部影片的十個重點，500字左右，不含作者介紹跟業配資訊。另外再給我三句影片裡有趣的句子。用適合即時通訊軟體的格式輸出:\n\n{paragraph}"}
-        ],
-        max_tokens=1000,  # Adjust as needed
-        temperature=0.5
-    )
-    
-    summary = response.choices[0].message.content
+        if self._openai_apikey:
+            return self._openai_apikey
+        
+        if self._env_path:
+            if not os.path.exists(self._env_path):
+                raise FileNotFoundError(f".env file not found at {self._env_path}")
+            load_dotenv(self._env_path)
+        else:
+            load_dotenv(find_dotenv())
 
-    # Save the summary to a file with the timestamped filename
-    with open(output_file, "w", encoding="utf-8") as file:
-        file.write(summary)
-    
-    print(f"Summary saved to {output_file}")
-    return summary
+        self._openai_apikey = os.getenv('OPENAI_API_KEY')
 
-def split_text(text, max_length=1500):
-    # Split text into chunks of max_length tokens (approximate)
-    chunks = [text[i:i+max_length] for i in range(0, len(text), max_length)]
-    return chunks
+        if self._openai_apikey:
+            return self._openai_apikey
+        else:
+            raise EnvironmentError("OPENAI_API_KEY not found in .env file")
+
+
+    def count_tokens(self, text, model="gpt-4o-mini"):
+        enc = tiktoken.encoding_for_model(model)
+        return len(enc.encode(text))
+        
+
+    def split_text_by_tokens(self, text, max_tokens=7000, model="gpt-40-mini"):
+        enc = tiktoken.encoding_for_model(model)
+        tokens = enc.encode(text)
+        chunks = []
+        for i in range(0, len(tokens), max_tokens):
+            chunk_tokens = tokens[i:i+max_tokens]
+            chunk_text = enc.decode(chunk_tokens)
+            chunks.append(chunk_text)
+        return chunks
+
+
+    def summarize_text(self, text, model="gpt-4o-mini", max_tokens=1000, temperature=0.5):
+        
+        client = OpenAI(
+            # This is the default and can be omitted
+            api_key=self.read_openai_apikey(),
+        )    
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "你很擅長做重點整理."},
+                {"role": "user", "content": f"給我這段話的重點整理:\n\n{text}"}
+            ],
+            max_tokens=max_tokens,
+            temperature=temperature
+        )
+        return response.choices[0].message['content']
+
+
+    def summarize_chunk(self, chunk, model="gpt-4o-mini"):
+        
+        client = OpenAI(
+            # This is the default and can be omitted
+            api_key=self.read_openai_apikey(),
+        )    
+        
+        response = client.chat.completions.create(
+            model=model,  # You can use other models as well
+            messages=[
+                {"role": "system", "content": "你很擅長做重點整理."},
+                {"role": "user", "content": f"給我這段話詳細的重點整理，另外再給我三句文章裡有趣的句子:\n\n{chunk}"}
+            ],
+            max_tokens=1000,  # Adjust as needed
+            temperature=0.5
+        )
+        
+        summary = response.choices[0].message.content
+        
+        return summary
+        
+            
+    def summarize_paragraph(self, paragraph, model="gpt-4o-mini", output_file_prefix="summary"):
+                
+        client = OpenAI(
+                # This is the default and can be omitted
+                api_key=self.read_openai_apikey(),
+            )
+        
+        # Generate a timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Create the full filename with the timestamp postfix
+        output_file = f"{output_file_prefix}_{timestamp}.txt"
+        
+        response = client.chat.completions.create(
+            model="gpt-4",  # You can use other models as well
+            messages=[
+                {"role": "system", "content": "你很擅長做重點整理."},
+                {"role": "user", "content": f"給我這段文字的十個重點，500字左右，不含作者介紹跟業配資訊。另外再給我三句文章裡有趣的句子。用適合即時通訊軟體的格式輸出:\n\n{paragraph}"}
+            ],
+            max_tokens=1000,  # Adjust as needed
+            temperature=0.5
+        )
+        
+        summary = response.choices[0].message.content
+
+        # Save the summary to a file with the timestamped filename
+        with open(output_file, "w", encoding="utf-8") as file:
+            file.write(summary)
+        
+        print(f"Summary saved to {output_file}")
+        return summary
+
 
 if __name__=="__main__":
     
+    worker = Summary(env_path="./openai_apikey.env")
+    transcript_file = "./transcript_notimestamp_long.txt"
+    model = "gpt-4o-mini"
     paragraph = ""
-    with open('transcript_notimestamp.txt') as f:
+    with open(transcript_file) as f:
         paragraph = f.read()
-
-    summary = summarize_paragraph(paragraph, output_file_prefix="summary")
+        content_length = len(paragraph)
     
-    # Split the long paragraph into chunks
-    # chunks = split_text(paragraph)
-    # summaries = [summarize_chunk(chunk) for chunk in chunks]
-    # all_summary = " ".join(summaries)
-    # print("all summary:", all_summary)
-
-    # with open("./all_summary.txt", "r", encoding="utf-8") as file:
-    #     all_summary = file.read()
-    # summary = summarize_paragraph(all_summary, output_file_prefix="summary")    
+    while content_length > 7000:
+        
+        # Split the long paragraph into chunks
+        chunks = worker.split_text_by_tokens(text=paragraph, model=model)
+        summaries = [worker.summarize_chunk(chunk, model=model) for chunk in chunks]
+        paragraph = " ".join(summaries)
+        print("summarized paragraph:", paragraph)
+        content_length = len(paragraph)
+        
+    summary = worker.summarize_paragraph(paragraph, model=model, output_file_prefix="summary")
     print("Summary:", summary)

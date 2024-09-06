@@ -1,0 +1,28 @@
+# Use a lightweight Python base image that supports ARM architecture
+FROM python:3.9-slim
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install necessary dependencies
+RUN apt-get update && \
+    apt-get install -y python3 \
+    python3-pip \
+    git \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip
+RUN pip3 install --no-cache-dir --upgrade pip
+
+# Install JAX for CPU (ARM support, no CUDA)
+RUN pip install --no-cache-dir jax[cpu]
+
+# Install Whisper-JAX
+RUN pip install --no-cache-dir git+https://github.com/sanchit-gandhi/whisper-jax.git
+
+# Install other dependencies
+RUN pip install --no-cache-dir yt_dlp pydub openai python-dotenv tiktoken
+
+# Optional: Install Rosetta 2 for x86 support on Mac (this should be done on the host machine)
+# RUN softwareupdate --install-rosetta --agree-to-license

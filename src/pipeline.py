@@ -111,7 +111,7 @@ def fetch_cur_timestamp() -> str:
     return timestamp
 
 
-url = 'https://www.youtube.com/watch?v=VUSwpdOwSA0'
+url = 'https://www.youtube.com/watch?v=XDUedunBLrc'
 wav_audio_path = download_youtube_audio(yt_url=url)
 print(f"path={wav_audio_path}")       
 audio_to_transcript(wav_audio_path)

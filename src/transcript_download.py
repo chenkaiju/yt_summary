@@ -26,7 +26,7 @@ def download_transcript(video_url, output_file):
 
     try:
         # Attempt to get the Chinese transcript
-        transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['zh'])
+        transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['zh', 'zh-TW'])
     except Exception as e:
         print(f"Chinese transcript not found. Trying to download English transcript. Error: {e}")
         try:
@@ -45,6 +45,6 @@ def download_transcript(video_url, output_file):
 
 if __name__=="__main__":
     # Replace this URL with your desired YouTube video URL
-    youtube_url = "https://www.youtube.com/watch?v=CDmr8c5wdj0"
+    youtube_url = "https://www.youtube.com/watch?v=3w7cyt2_dnI"
     output_file = "transcript.txt"
     download_transcript(youtube_url, output_file)
